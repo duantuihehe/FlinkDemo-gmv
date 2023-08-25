@@ -1,10 +1,16 @@
 <template>  
-  <div class="count-container">  
-    <span>销售额:</span>
-    <br>
-    <span ref="countupRef"></span>  
-    
-  </div>  
+<body>
+
+  <div>
+    <ul>
+      <td class="td">销售额</td>
+      <br/>
+      <td class="td" ref="countupRef"></td>
+
+    </ul>
+  </div>
+</body>
+
 </template>
 
 <script setup lang="ts">
@@ -62,15 +68,10 @@
   }
 
   const getData= ()=>{
-    const socket = io('http://localhost:9000'); // 将服务器地址更改为实际的Socket.io服务器地址
-    console.info(socket)
+    const socket = io('http://localhost:9000'); 
     socket.on('message', (data) => {
-      console.info(startNum)
-      console.info(data)
-
       props.options.startVal=startNum
       startNum=data
-      
       numAnim = new CountUp(countupRef.value, data, props.options)
     numAnim.start()
     });
@@ -79,22 +80,7 @@
 
   
 <style scoped>  
-  .count-container {  
-    width: 100%; /* 填充整个屏幕宽度 */  
-    height: 100vh; /* 占据整个屏幕高度 */  
-    display: flex;  
-    align-items: center;  
-    justify-content: center;  
-    font-size: 36px; /* 你可以根据需要调整这个值 */  
-  }  
-  
- 
-  span{
-    word-break:normal; 
-    width:auto; 
-    display:block; 
-    white-space:pre-wrap;
-    word-wrap : break-word ;
-    overflow: hidden ;
-}  
+ .td {
+  font-size: 90px;
+ } 
 </style>
