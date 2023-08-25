@@ -1,0 +1,19 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vite": "^4.4.3",
+    "vue": "^3.3.4",
+    "vue-countup-v2": "^4.0.0",
+    "vue-socket.io": "^3.0.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.3.1"
+  }
+}
