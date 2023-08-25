@@ -10,4 +10,4 @@ web 模块为前端代码 vue实现
 data-process 模块为后端代码 java实现 
 主要功能为 flink消费kafka数据简单计算然后将数据sink到前端
 ## 最终效果
-![图片]()
+![图片](https://github.com/duantuihehe/FlinkDemo-gmv/blob/main/web/public/show.gif)
