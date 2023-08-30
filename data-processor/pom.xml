@@ -42,6 +42,7 @@
         <artifactId>lombok</artifactId>
         <version>1.18.24</version>
         <scope>${scop.type}</scope>
+        <optional>true</optional>
     </dependency>
 
 </dependencies>

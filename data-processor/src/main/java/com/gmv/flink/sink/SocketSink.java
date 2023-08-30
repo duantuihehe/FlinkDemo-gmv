@@ -1,10 +1,11 @@
 package com.gmv.flink.sink;
 
 import com.corundumstudio.socketio.SocketIOServer;
+import com.gmv.flink.bean.Order;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 
-public class SocketSink  extends RichSinkFunction<Double> {
+public class SocketSink  extends RichSinkFunction<Order> {
 private SocketIOServer socket;
     private String hostName;
     private int port;
@@ -25,8 +26,9 @@ private SocketIOServer socket;
     }
 
     @Override
-    public void invoke(Double value, Context context) {
-socket.getBroadcastOperations().sendEvent("message",value);
+    public void invoke(Order value, Context context) {
+//        System.out.println(value);
+        socket.getBroadcastOperations().sendEvent("message",value.getPrice());
     }
 
     @Override

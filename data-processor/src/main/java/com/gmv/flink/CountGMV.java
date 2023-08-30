@@ -3,27 +3,27 @@ package com.gmv.flink;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gmv.flink.bean.Order;
 import com.gmv.flink.sink.SocketSink;
-import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
-import org.apache.flink.streaming.api.windowing.triggers.Trigger;
-import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 
-import java.util.Collection;
+import java.time.Duration;
 import java.util.Objects;
 
 public class CountGMV {
     public static void main(String[] args) throws Exception {
-        System.out.println("hello flink !!");
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        //方便调试
+        env.setParallelism(1);
+        // build source
         KafkaSource<String> source = KafkaSource.<String>builder()
                 .setBootstrapServers("iZbp1fovdmzckhw8ihqou1Z:9092")
                 .setTopics("test")
@@ -31,23 +31,45 @@ public class CountGMV {
                 .setStartingOffsets(OffsetsInitializer.latest())
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .build();
-        DataStreamSource<String> ds = env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka-source");
-        SingleOutputStreamOperator<Order> order = ds.map(new MapFunction<String, Order>() {
+        // build watermark
+        WatermarkStrategy<String> orderWatermarkStrategy = WatermarkStrategy
+                .<String>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                .withTimestampAssigner(new SerializableTimestampAssigner<String>() {
+                    @Override
+                    public long extractTimestamp(String s, long l) {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        Order o = null;
+                        try {
+                             o = objectMapper.readValue(s, Order.class);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return o==null?Long.MIN_VALUE:o.getOrderTime().getTime();
+                    }
+                })
+                ;
+
+        SingleOutputStreamOperator<Order> order = env.fromSource(source
+                ,orderWatermarkStrategy
+                , "kafka-source")
+                .process(new ProcessFunction<String, Order>() {
             @Override
-            public Order map(String s) {
-                Order order=null;
+            public void processElement(String s, Context context, Collector<Order> collector) throws Exception {
+//                System.out.println(context.timerService().currentWatermark());
+                Order order = null;
                 ObjectMapper objectMapper = new ObjectMapper();
                 try {
                     order = objectMapper.readValue(s, Order.class);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                return order;
+                collector.collect(order);
             }
         }).filter(Objects::nonNull);
 
-        order.print();
-//         map.addSink(new SocketSink("localhost", 9000)).setParallelism(1);
+        order.windowAll( TumblingEventTimeWindows.of(Time.milliseconds(10000)))
+                .sum("price")
+                .addSink(new SocketSink("localhost", 9000)).setParallelism(1);
         env.execute();
     }
 }
